@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jms="http://www.springframework.org/schema/jms" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+     http://www.springframework.org/schema/beans/spring-beans.xsd
+     http://www.springframework.org/schema/context
+     http://www.springframework.org/schema/context/spring-context.xsd
+    http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms.xsd     
+    http://www.springframework.org/schema/aop
+    http://www.springframework.org/schema/aop/spring-aop.xsd
+    http://www.springframework.org/schema/tx 
+    http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+
+	<!-- Spring提供的JMS工具类，它可以进行消息发送、接收等 -->
+	<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+		<!-- 这个connectionFactory对应的是我们定义的Spring提供的那个ConnectionFactory对象 -->
+		<property name="connectionFactory" ref="connectionFactory" />
+		<!-- 消息转换器 -->
+		<property name="messageConverter" ref="integrationMessageConverter" />
+		<property name="sessionTransacted" value="true" />
+	</bean>
+
+	<!-- 类型转换器 -->
+	<bean id="integrationMessageConverter" class="com.zhiwang.jms.IntegrationMessageConverter" />
+
+	<!-- 真正可以产生Connection的ConnectionFactory，由对应的 JMS服务厂商提供 -->
+	<bean id="targetConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+		<property name="brokerURL" value="tcp://127.0.0.1:61616" />
+		<property name="userName" value="system" />
+		<property name="password" value="manager" />
+		<property name="useAsyncSend" value="true" />
+		<!-- <property name="prefetchPolicy.queuePrefetch" value="1"> -->
+		<property name="redeliveryPolicy.maximumRedeliveries" value="3"/>
+		<property name="redeliveryPolicy.initialRedeliveryDelay" value="1000"/>
+	</bean>
+
+	<!-- 可以用来将Connection、Session和MessageProducer池化，这样可以大大的减少我们的资源消耗 -->
+	<bean id="pooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory" destroy-method="stop">
+		<property name="connectionFactory" ref="targetConnectionFactory" />
+		<property name="maxConnections" value="10" />
+	</bean>
+
+	<!-- Spring用于管理真正的ConnectionFactory的ConnectionFactory -->
+	<bean id="connectionFactory"
+		class="org.springframework.jms.connection.SingleConnectionFactory">
+		<property name="targetConnectionFactory" ref="pooledConnectionFactory" />
+	</bean>
+
+	<!-- 公共队列相关 -->
+	<bean id="commonQueueDestination" class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg>
+			<value>app.common.queue</value>
+		</constructor-arg>
+	</bean>
+
+	<bean id="commonMessageListener" class="com.zhiwang.jms.CommonMessageListener">
+		<property name="messageConverter" ref="integrationMessageConverter" />
+	</bean>
+
+	<bean id="commonMessageListenerContainer"
+		class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+		<property name="connectionFactory" ref="connectionFactory" />
+		<property name="destination" ref="commonQueueDestination" />
+		<property name="messageListener" ref="commonMessageListener" />
+		<property name="sessionTransacted" value="true" />
+		<property name="concurrentConsumers" value="5" />
+		<property name="maxConcurrentConsumers"
+			value="10" />
+		<property name="taskExecutor" ref="taskExecutor" />
+	</bean>
+
+	<!-- API调用队列 -->
+	<bean id="apiQueueDestination" class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg>
+			<value>app.api.queue</value>
+		</constructor-arg>
+	</bean>
+
+	<bean id="apiMessageListenerContainer"
+		class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+		<property name="connectionFactory" ref="connectionFactory" />
+		<property name="destination" ref="apiQueueDestination" />
+		<property name="messageListener" ref="commonMessageListener" />
+		<property name="sessionTransacted" value="true" />
+		<property name="concurrentConsumers" value="5" />
+		<property name="maxConcurrentConsumers"
+			value="10" />
+		<property name="taskExecutor" ref="taskExecutor" />
+	</bean>
+	
+	<!-- 异步线程池 -->
+    <bean id="taskExecutor"
+        class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+        <!-- 核心线程数 -->
+        <property name="corePoolSize" value="20" />
+        <!-- 最大线程数 -->
+        <property name="maxPoolSize" value="50" />
+        <!-- 队列最大长度 >=mainExecutor.maxSize -->
+        <property name="queueCapacity" value="500" />
+        <!-- 线程池维护线程所允许的空闲时间 -->
+        <property name="keepAliveSeconds" value="30000" />
+        <!-- 线程池对拒绝任务(无线程可用)的处理策略 ThreadPoolExecutor.CallerRunsPolicy策略 ,调用者的线程会执行该任务,如果执行器已关闭,则丢弃.  -->
+        <property name="rejectedExecutionHandler">
+            <bean class="java.util.concurrent.ThreadPoolExecutor$CallerRunsPolicy" />
+        </property>
+    </bean>
+
+	
+</beans>

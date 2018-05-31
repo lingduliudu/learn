@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:cache="http://www.springframework.org/schema/cache" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="  
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd 
+http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd   
+http://www.springframework.org/schema/context  http://www.springframework.org/schema/context/spring-context.xsd
+http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+
+	<aop:aspectj-autoproxy />
+
+ <!-- 
+	<bean id="redisClusterConfiguration"
+		class="org.springframework.data.redis.connection.RedisClusterConfiguration">
+		<property name="maxRedirects" value="${redis.maxRedirects}"></property>
+		<property name="clusterNodes">
+			<set>
+				<bean class="org.springframework.data.redis.connection.RedisClusterNode">
+					<constructor-arg name="host" value="${redis.host0}"></constructor-arg>
+					<constructor-arg name="port" value="${redis.port0}"></constructor-arg>
+				</bean>
+				<bean class="org.springframework.data.redis.connection.RedisClusterNode">
+					<constructor-arg name="host" value="${redis.host1}"></constructor-arg>
+					<constructor-arg name="port" value="${redis.port1}"></constructor-arg>
+				</bean>
+				<bean class="org.springframework.data.redis.connection.RedisClusterNode">
+					<constructor-arg name="host" value="${redis.host2}"></constructor-arg>
+					<constructor-arg name="port" value="${redis.port2}"></constructor-arg>
+				</bean>
+				<bean class="org.springframework.data.redis.connection.RedisClusterNode">
+					<constructor-arg name="host" value="${redis.host3}"></constructor-arg>
+					<constructor-arg name="port" value="${redis.port3}"></constructor-arg>
+				</bean>
+				<bean class="org.springframework.data.redis.connection.RedisClusterNode">
+					<constructor-arg name="host" value="${redis.host4}"></constructor-arg>
+					<constructor-arg name="port" value="${redis.port4}"></constructor-arg>
+				</bean>
+				<bean class="org.springframework.data.redis.connection.RedisClusterNode">
+					<constructor-arg name="host" value="${redis.host5}"></constructor-arg>
+					<constructor-arg name="port" value="${redis.port5}"></constructor-arg>
+				</bean>
+
+			</set>
+		</property>
+	</bean>
+	<bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+		<property name="maxIdle" value="${redis.maxIdle}" />
+		<property name="maxTotal" value="${redis.maxTotal}" />
+	</bean>
+	<bean id="jedisConnectionFactory"
+		class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory">
+		<constructor-arg ref="redisClusterConfiguration" />
+		<constructor-arg ref="jedisPoolConfig" />
+	</bean>
+ -->
+ 
+
+ 	<bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+		<property name="maxTotal" value="1024" />
+		<property name="maxWaitMillis" value="1000" />
+		<property name="maxIdle" value="200" />
+		 <property name="minIdle" value="0"/>
+		<property name="testOnBorrow" value="true" />
+		<property name="testOnReturn" value="true"/>
+	</bean>
+
+	<bean id='jedisConnectionFactory'
+		class='org.springframework.data.redis.connection.jedis.JedisConnectionFactory'
+		destroy-method="destroy">
+		<property name="hostName" value="localhost" />
+		<property name="port" value="6379" />
+		<property name="poolConfig" ref="jedisPoolConfig" />
+		<property name="timeout" value="30000" />
+		<property name="usePool" value="true" />
+	</bean>
+	
+	 
+	<bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate">
+		<property name="connectionFactory" ref="jedisConnectionFactory" />
+		<property name="keySerializer" ref="stringSerializer" />
+		<property name="valueSerializer" ref="jsonSerializer" />
+		<property name="hashKeySerializer" ref="stringSerializer" />
+		<property name="hashValueSerializer" ref="jsonSerializer" />
+	</bean>
+
+	<!-- Serializer -->
+	<bean id="stringSerializer"
+		class="org.springframework.data.redis.serializer.StringRedisSerializer" />
+	<bean id="jsonSerializer"
+		class="org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer" />
+
+
+
+	<cache:annotation-driven />
+
+	<bean id="cacheManager" class="org.springframework.data.redis.cache.RedisCacheManager">
+		<constructor-arg name="redisOperations" ref="redisTemplate" />
+		<!-- 是否使用前缀 -->
+		<property name="usePrefix" value="true" />
+		<!-- 前缀命名，仅当usePrefix为true时才生效 -->
+		<property name="cachePrefix">
+			<bean class="org.springframework.data.redis.cache.DefaultRedisCachePrefix">
+				<constructor-arg name="delimiter" value=":" />
+			</bean>
+		</property>
+		<!-- 多个缓存有效期，一般的单个工程可以省略此项 -->
+		<property name="expires">
+			<map>
+				<entry key="credit:DatasourceConf" value="0" />
+			</map>
+		</property>
+	</bean>
+
+	<!-- 将session放入redis
+	<bean id="redisHttpSessionConfiguration"
+		class="org.springframework.session.data.redis.config.annotation.web.http.RedisHttpSessionConfiguration">
+		<property name="maxInactiveIntervalInSeconds" value="1800" />
+	</bean>
+	 -->
+
+</beans> 
