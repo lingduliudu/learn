@@ -27,8 +27,6 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 public class SpringConfig
 {
 
-  @Autowired
-  private Environment env;
 
   @Bean(name={"sessionFactory"})
   public LocalSessionFactoryBean sessionFactory(DataSource dataSource)

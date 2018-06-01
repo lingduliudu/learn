@@ -2,9 +2,11 @@
  
  import javax.annotation.Resource;
 
+import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.event.TestEvent;
 import com.example.service.impl.ICityService;
 import com.example.tool.PropertyTool;
  
@@ -14,13 +16,21 @@ import com.example.tool.PropertyTool;
  
    @Resource
    private ICityService cityService;
- 
+   @Resource
+   private ApplicationContext applicationContext;
+   
    @GetMapping({"/test/test1"})
    public String test1()
    {
-     System.out.println(this.cityService.getCitys());
-     System.out.println(PropertyTool.getProperty("abc"));
-     System.out.println(PropertyTool.getProperty("jdbc.password"));
-     return "123F";
+	   /*
+	    * 测试数据
+	    * 
+	    * 
+	    *
+	    */
+	   TestEvent te = new TestEvent(new Object());
+	   te.setText("-----------111------------");
+	   applicationContext.publishEvent(te);
+	   return "123F";
    }
  }
