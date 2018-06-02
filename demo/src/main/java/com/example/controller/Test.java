@@ -28,20 +28,12 @@ import io.swagger.annotations.ApiParam;
    
    @GetMapping({"/test/test1"})
    @ApiOperation(notes = "测试Swagger", value = "test")
-  /* @ApiImplicitParams({
-   @ApiImplicitParam(value="描述1231",name="param",dataType="String",paramType = "query"), 
-   @ApiImplicitParam(value="描述121231",name="param2",dataType="String",paramType = "query")
-   })*/
-   public String test1(@ApiParam(required = true, name="输出") String param)
+   @ApiImplicitParams({
+   @ApiImplicitParam(value="描述",name="param",dataType="String",paramType = "query"), 
+   })
+   public String test1(String param)
    {
-	   /*
-	    * 测试数据
-	    * 
-	    * 
-	    *
-	    */
 	   TestEvent te = new TestEvent(new Object());
-	   te.setText("-----------111------------");
 	   applicationContext.publishEvent(te);
 	   return "123F";
    }
