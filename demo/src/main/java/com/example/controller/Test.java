@@ -35,6 +35,6 @@ import io.swagger.annotations.ApiParam;
    {
 	   TestEvent te = new TestEvent(new Object());
 	   applicationContext.publishEvent(te);
-	   return "123F";
+	   return "test2";
    }
  }
